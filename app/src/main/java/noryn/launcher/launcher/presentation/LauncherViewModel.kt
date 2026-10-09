@@ -94,6 +94,7 @@ data class LauncherUiState(
     val profileGroups: List<AppSectionGroup> = emptyList(),
     val widgetInstances: List<WidgetInstance> = emptyList(),
     val widgetProviders: List<WidgetProvider> = emptyList(),
+    val isLoadingWidgetProviders: Boolean = false,
     val searchResults: List<LauncherApp> = emptyList(),
     val iconPacks: List<IconPackInfo> = emptyList(),
     val iconRevision: Long = 0,
@@ -125,6 +126,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val hasNotificationAccess = MutableStateFlow(false)
     private val widgetInstances = MutableStateFlow<List<WidgetInstance>>(emptyList())
     private val widgetProviders = MutableStateFlow<List<WidgetProvider>>(emptyList())
+    private val widgetProvidersLoading = MutableStateFlow(false)
+    private var widgetProvidersLoaded = false
+    private var widgetRefreshJob: Job? = null
+    private var widgetRefreshGeneration = 0L
+    private var widgetPreviewJob: Job? = null
+    private var widgetPreviewPackage: String? = null
+    private var widgetPreviewGeneration = 0L
     private val displayLocale = MutableStateFlow(Locale.getDefault())
     private val iconRevision = MutableStateFlow(0L)
     private val loading = MutableStateFlow(true)
@@ -175,7 +183,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     private data class AppSnapshot(val apps: List<LauncherApp>, val profiles: List<LauncherProfile>)
 
-    private data class WidgetState(val instances: List<WidgetInstance>, val providers: List<WidgetProvider>)
+    private data class WidgetState(
+        val instances: List<WidgetInstance>,
+        val providers: List<WidgetProvider>,
+        val isLoadingProviders: Boolean,
+    )
 
     private data class ContextState(
         val suggestedPackageNames: List<String>,
@@ -231,8 +243,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         )
     }
 
-    private val widgetState = combine(widgetInstances, widgetProviders) { instances, providers ->
-        WidgetState(instances, providers)
+    private val widgetState = combine(widgetInstances, widgetProviders, widgetProvidersLoading) { instances, providers, isLoadingProviders ->
+        WidgetState(instances, providers, isLoadingProviders)
     }
 
     val uiState = combine(coreState, screen, isDefaultLauncher, loading, widgetState) { core, currentScreen, isDefault, isLoading, widgets ->
@@ -241,7 +253,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LauncherUiState())
 
     init {
-        widgetHostManager.setProvidersChangedCallback { refreshWidgets() }
+        widgetHostManager.setProvidersChangedCallback {
+            refreshWidgets(loadProviders = screen.value == LauncherScreen.Widgets)
+        }
         viewModelScope.launch {
             preferences.settings.distinctUntilChanged().collect { settings ->
                 NotificationRepository.setFeatureEnabled(
@@ -285,6 +299,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 appObservation = null
                 apps.value = emptyList()
                 profiles.value = emptyList()
+                clearWidgetProviders()
                 NotificationRepository.clear()
                 suggestedPackageNames.value = emptyList()
                 iconPacks.value = emptyList()
@@ -328,6 +343,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         screen.value = LauncherScreen.Search
     }
 
+    fun onHomeIntent() = returnToHome()
+
     fun updateQuery(value: String) {
         query.value = value
     }
@@ -351,8 +368,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun openHiddenApps() = openSettingsScreen(LauncherScreen.HiddenApps)
     fun openFavoriteManagement() = openSettingsScreen(LauncherScreen.FavoriteManagement)
     fun openWidgets() {
-        refreshWidgets()
         openSettingsScreen(LauncherScreen.Widgets)
+        refreshWidgets(loadProviders = true)
     }
     fun openNotifications() = openSettingsScreen(LauncherScreen.Notifications)
 
@@ -413,12 +430,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
             LauncherScreen.HiddenApps,
             LauncherScreen.FavoriteManagement,
-            LauncherScreen.Widgets,
             LauncherScreen.Notifications,
             LauncherScreen.AppearanceSettings,
             LauncherScreen.HomeSettings,
             LauncherScreen.GestureSettings,
             LauncherScreen.AppSettings -> screen.value = LauncherScreen.Settings
+            LauncherScreen.Widgets -> {
+                clearWidgetProviders()
+                screen.value = LauncherScreen.Settings
+            }
             LauncherScreen.IconSelection -> screen.value = LauncherScreen.AppEdit
             LauncherScreen.IconPacks -> screen.value = iconPackReturnScreen
             LauncherScreen.AppEdit -> {
@@ -497,13 +517,71 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         refreshWidgets()
     }
 
-    fun refreshWidgets() {
-        viewModelScope.launch {
-            val values = withContext(Dispatchers.IO) {
-                widgetHostManager.instances() to widgetHostManager.providers()
+    fun refreshWidgets(loadProviders: Boolean = false) {
+        val shouldLoadProviders = loadProviders ||
+            (screen.value == LauncherScreen.Widgets && !widgetProvidersLoaded)
+        widgetRefreshJob?.cancel()
+        val generation = ++widgetRefreshGeneration
+        if (shouldLoadProviders) widgetProvidersLoading.value = true
+        else widgetProvidersLoading.value = false
+        widgetRefreshJob = viewModelScope.launch {
+            try {
+                val instances = withContext(Dispatchers.IO) { widgetHostManager.instances() }
+                widgetInstances.value = instances.sortedBy(WidgetInstance::position)
+                if (shouldLoadProviders) {
+                    val providers = withContext(Dispatchers.IO) { widgetHostManager.providers() }
+                    if (generation == widgetRefreshGeneration && screen.value == LauncherScreen.Widgets) {
+                        val expandedPackage = widgetPreviewPackage
+                        widgetPreviewGeneration++
+                        widgetPreviewJob?.cancel()
+                        widgetPreviewJob = null
+                        widgetPreviewPackage = null
+                        widgetProviders.value = providers
+                        widgetProvidersLoaded = true
+                        expandedPackage?.takeIf { packageName ->
+                            providers.any { it.provider.packageName == packageName }
+                        }?.let(::loadWidgetPreviews)
+                    }
+                }
+            } finally {
+                if (generation == widgetRefreshGeneration && shouldLoadProviders) {
+                    widgetProvidersLoading.value = false
+                }
             }
-            widgetInstances.value = values.first.sortedBy(WidgetInstance::position)
-            widgetProviders.value = values.second
+        }
+    }
+
+    fun loadWidgetPreviews(packageName: String) {
+        if (screen.value != LauncherScreen.Widgets || widgetPreviewPackage == packageName) return
+        val providers = widgetProviders.value.filter { it.provider.packageName == packageName }
+        if (providers.isEmpty()) return
+        widgetPreviewJob?.cancel()
+        val generation = ++widgetPreviewGeneration
+        widgetPreviewPackage = packageName
+        widgetPreviewJob = viewModelScope.launch {
+            val previews = withContext(Dispatchers.IO) { widgetHostManager.loadPreviews(providers) }
+            if (generation != widgetPreviewGeneration || screen.value != LauncherScreen.Widgets) return@launch
+            if (previews.isNotEmpty()) {
+                widgetProviders.value = widgetProviders.value.map { provider ->
+                    if (provider.provider in previews) provider.copy(preview = previews[provider.provider]) else provider
+                }
+            }
+        }
+    }
+
+    fun clearWidgetPreviews(packageName: String) {
+        if (widgetPreviewPackage == packageName) {
+            widgetPreviewGeneration++
+            widgetPreviewJob?.cancel()
+            widgetPreviewJob = null
+            widgetPreviewPackage = null
+        }
+        widgetProviders.value = widgetProviders.value.map { provider ->
+            if (provider.provider.packageName == packageName && provider.preview != null) {
+                provider.copy(preview = null)
+            } else {
+                provider
+            }
         }
     }
 
@@ -739,6 +817,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             profileGroups = profileGroups,
             widgetInstances = widgetState.instances,
             widgetProviders = widgetState.providers,
+            isLoadingWidgetProviders = widgetState.isLoadingProviders,
             favorites = favorites,
             hiddenApps = permittedApps.filter { it.id in hiddenIds },
             suggestedApps = suggestedApps,
@@ -830,7 +909,21 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private fun returnToHome() {
         query.value = ""
         editingAppId.value = null
+        clearWidgetProviders()
         screen.value = LauncherScreen.Home
+    }
+
+    private fun clearWidgetProviders() {
+        widgetRefreshGeneration++
+        widgetRefreshJob?.cancel()
+        widgetRefreshJob = null
+        widgetPreviewGeneration++
+        widgetPreviewJob?.cancel()
+        widgetPreviewJob = null
+        widgetPreviewPackage = null
+        widgetProviders.value = emptyList()
+        widgetProvidersLoaded = false
+        widgetProvidersLoading.value = false
     }
 
     private fun flushPendingAppName() {

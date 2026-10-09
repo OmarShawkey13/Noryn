@@ -28,9 +28,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -58,15 +58,6 @@ internal fun SearchScreen(viewModel: LauncherViewModel, state: LauncherUiState) 
         lineHeight = 30.sp,
         letterSpacing = 0.sp,
     )
-
-    LaunchedEffect(state.query) {
-        if (state.query != queryValue.value.text) {
-            queryValue.value = TextFieldValue(
-                text = state.query,
-                selection = TextRange(state.query.length),
-            )
-        }
-    }
 
     LaunchedEffect(state.settings.searchKeyboardImmediately) {
         if (state.settings.searchKeyboardImmediately) {

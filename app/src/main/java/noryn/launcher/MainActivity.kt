@@ -89,6 +89,11 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (intent.action == android.content.Intent.ACTION_MAIN &&
+            intent.hasCategory(android.content.Intent.CATEGORY_HOME)
+        ) {
+            viewModel.onHomeIntent()
+        }
         viewModel.onPinShortcutRequest(intent)
     }
 

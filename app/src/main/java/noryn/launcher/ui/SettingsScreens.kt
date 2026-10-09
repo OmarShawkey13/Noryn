@@ -33,6 +33,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -368,7 +369,18 @@ internal fun WidgetSettingsScreen(viewModel: LauncherViewModel, state: LauncherU
                 }
             }
             item { SettingsSectionTitle(stringResource(R.string.add_widget)) }
-            if (state.widgetProviders.isEmpty()) {
+            if (state.isLoadingWidgetProviders) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Text(stringResource(R.string.loading), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            } else if (state.widgetProviders.isEmpty()) {
                 item { Text(stringResource(R.string.no_widget_providers), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             } else {
                 providersByApp.forEach { providers ->
@@ -380,7 +392,14 @@ internal fun WidgetSettingsScreen(viewModel: LauncherViewModel, state: LauncherU
                             providers = providers,
                             expanded = expandedWidgetPackage == packageName,
                             onToggle = {
-                                expandedWidgetPackage = if (expandedWidgetPackage == packageName) null else packageName
+                                if (expandedWidgetPackage == packageName) {
+                                    viewModel.clearWidgetPreviews(packageName)
+                                    expandedWidgetPackage = null
+                                } else {
+                                    expandedWidgetPackage?.let(viewModel::clearWidgetPreviews)
+                                    expandedWidgetPackage = packageName
+                                    viewModel.loadWidgetPreviews(packageName)
+                                }
                             },
                             onAddWidget = viewModel::beginAddWidget,
                         )

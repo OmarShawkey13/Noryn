@@ -81,14 +81,26 @@ class WidgetHostManager(context: Context) {
             .toList()
     }.onFailure { Log.w(TAG, "Could not load widget providers", it) }.getOrDefault(emptyList())
 
+    fun loadPreviews(providers: List<WidgetProvider>): Map<ComponentName, Bitmap?> {
+        val requested = providers.mapTo(HashSet(), WidgetProvider::provider)
+        if (requested.isEmpty()) return emptyMap()
+        return runCatching {
+            val density = appContext.resources.displayMetrics.densityDpi
+            manager.getInstalledProvidersForProfile(Process.myUserHandle())
+                .asSequence()
+                .filter { it.provider in requested }
+                .associate { info ->
+                    val preview = info.loadPreviewImage(appContext, density)?.toPreviewBitmapOrNull(280)
+                    info.provider to preview
+                }
+        }.onFailure { Log.w(TAG, "Could not load widget previews", it) }.getOrDefault(emptyMap())
+    }
+
     private fun toPickerProvider(info: AppWidgetProviderInfo): WidgetProvider? = runCatching {
         val packageInfo = appContext.packageManager.getApplicationInfo(info.provider.packageName, 0)
         val appLabel = appContext.packageManager.getApplicationLabel(packageInfo).toString().trim()
             .ifBlank { appContext.getString(R.string.unnamed_app) }
-        val density = appContext.resources.displayMetrics.densityDpi
         val icon = packageInfo.loadIcon(appContext.packageManager).toBitmapOrNull(64)
-        val previewDrawable = info.loadPreviewImage(appContext, density)
-        val preview = previewDrawable?.toPreviewBitmapOrNull(280)
         val optionalConfiguration = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             info.widgetFeatures and AppWidgetProviderInfo.WIDGET_FEATURE_CONFIGURATION_OPTIONAL != 0
         val reconfigurable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P &&
@@ -104,7 +116,7 @@ class WidgetHostManager(context: Context) {
             needsConfiguration = info.configure != null && !optionalConfiguration,
             reconfigurable = reconfigurable,
             appIcon = icon,
-            preview = preview,
+            preview = null,
         )
     }.onFailure { Log.w(TAG, "Could not read provider ${info.provider}", it) }.getOrNull()
 

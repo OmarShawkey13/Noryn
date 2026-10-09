@@ -107,8 +107,10 @@ fun LauncherRoot(viewModel: LauncherViewModel, state: LauncherUiState, homeSuppo
         }
     }
 
-    BackHandler(enabled = state.screen !in setOf(LauncherScreen.Home, LauncherScreen.Welcome)) {
-        viewModel.goBack()
+    BackHandler {
+        if (state.screen !in setOf(LauncherScreen.Home, LauncherScreen.Welcome)) {
+            viewModel.goBack()
+        }
     }
 
     Box(
