@@ -1,0 +1,10 @@
+<resources>
+    <plurals name="mapped_icon_count">
+        <item quantity="zero">لا توجد أيقونات مرتبطة</item>
+        <item quantity="one">أيقونة واحدة مرتبطة</item>
+        <item quantity="two">أيقونتان مرتبطتان</item>
+        <item quantity="few">%1$d أيقونات مرتبطة</item>
+        <item quantity="many">%1$d أيقونة مرتبطة</item>
+        <item quantity="other">%1$d أيقونة مرتبطة</item>
+    </plurals>
+</resources>

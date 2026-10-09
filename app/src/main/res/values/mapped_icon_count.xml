@@ -1,0 +1,6 @@
+<resources>
+    <plurals name="mapped_icon_count">
+        <item quantity="one">%1$d mapped icon</item>
+        <item quantity="other">%1$d mapped icons</item>
+    </plurals>
+</resources>

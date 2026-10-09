@@ -47,3 +47,18 @@ val NorynTypography = Typography(
         letterSpacing = 1.2.sp,
     ),
 )
+
+val NorynArabicTypography = Typography(
+    displayLarge = NorynTypography.displayLarge.copy(
+        fontFamily = FontFamily.SansSerif,
+        letterSpacing = 0.sp,
+    ),
+    headlineMedium = NorynTypography.headlineMedium.copy(
+        fontFamily = FontFamily.SansSerif,
+        letterSpacing = 0.sp,
+    ),
+    titleMedium = NorynTypography.titleMedium,
+    bodyLarge = NorynTypography.bodyLarge,
+    bodyMedium = NorynTypography.bodyMedium,
+    labelSmall = NorynTypography.labelSmall.copy(letterSpacing = 0.sp),
+)
