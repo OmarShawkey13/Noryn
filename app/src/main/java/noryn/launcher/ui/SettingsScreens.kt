@@ -35,6 +35,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -46,6 +47,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -59,6 +61,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -69,6 +72,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -76,6 +80,7 @@ import noryn.launcher.BuildConfig
 import noryn.launcher.R
 import noryn.launcher.core.model.AppLabelMode
 import noryn.launcher.core.model.ClockAlignment
+import noryn.launcher.core.model.ClockDesign
 import noryn.launcher.core.model.FontChoice
 import noryn.launcher.core.model.HomeGestureAction
 import noryn.launcher.core.model.LauncherApp
@@ -90,6 +95,9 @@ import noryn.launcher.core.model.WidgetSizePreset
 import noryn.launcher.launcher.presentation.LauncherUiState
 import noryn.launcher.launcher.presentation.LauncherViewModel
 import noryn.launcher.ui.theme.LauncherDimens
+import android.text.format.DateFormat
+import java.util.Date
+import kotlinx.coroutines.delay
 
 @Composable
 internal fun SettingsScreen(viewModel: LauncherViewModel, state: LauncherUiState) {
@@ -165,8 +173,14 @@ internal fun AppearanceSettingsScreen(
 }
 
 @Composable
-internal fun HomeSettingsScreen(viewModel: LauncherViewModel, state: LauncherUiState) {
+internal fun HomeSettingsScreen(
+    viewModel: LauncherViewModel,
+    state: LauncherUiState,
+    onChangeWallpaper: () -> Unit,
+) {
     SettingsPage(stringResource(R.string.home_settings), viewModel::goBack) {
+        HomeLayoutPreview(state, viewModel)
+        SettingsLinkRow(stringResource(R.string.change_wallpaper), onClick = onChangeWallpaper)
         ChoiceRow(
             title = stringResource(R.string.app_labels),
             selected = state.settings.appLabelMode,
@@ -193,25 +207,11 @@ internal fun HomeSettingsScreen(viewModel: LauncherViewModel, state: LauncherUiS
             ),
             onSelect = viewModel::setRowSpacing,
         )
-        SettingSwitchRow(stringResource(R.string.show_clock), state.settings.showClock, viewModel::setShowClock)
-        if (state.settings.showClock) {
-            ChoiceRow(
-                title = stringResource(R.string.clock_size),
-                selected = state.settings.clockSize,
-                choices = sizeChoices(),
-                onSelect = viewModel::setClockSize,
-            )
-            ChoiceRow(
-                title = stringResource(R.string.clock_alignment),
-                selected = state.settings.clockAlignment,
-                choices = listOf(
-                    ClockAlignment.Start to stringResource(R.string.alignment_start),
-                    ClockAlignment.Center to stringResource(R.string.alignment_center),
-                ),
-                onSelect = viewModel::setClockAlignment,
-            )
-        }
-        SettingSwitchRow(stringResource(R.string.show_date), state.settings.showDate, viewModel::setShowDate)
+        SettingsLinkRow(
+            stringResource(R.string.clock_studio),
+            stringResource(R.string.clock_studio_summary),
+            viewModel::openClockStudio,
+        )
         SettingSwitchRow(
             stringResource(R.string.show_alphabet_index),
             state.settings.showAlphabetIndex,
@@ -247,6 +247,192 @@ internal fun HomeSettingsScreen(viewModel: LauncherViewModel, state: LauncherUiS
         }
         SettingsLinkRow(stringResource(R.string.widgets), onClick = viewModel::openWidgets)
         SettingsLinkRow(stringResource(R.string.manage_favorites), onClick = viewModel::openFavoriteManagement)
+    }
+}
+
+@Composable
+private fun HomeLayoutPreview(state: LauncherUiState, viewModel: LauncherViewModel) {
+    val context = LocalContext.current
+    val previewTime = remember { Date() }
+    val previewApps = (state.favorites.ifEmpty { state.visibleApps }).take(3)
+    val previewIconSize = when (state.settings.appIconSize) {
+        SizePreset.Small -> 36.dp
+        SizePreset.Default -> 42.dp
+        SizePreset.Large -> 48.dp
+    }
+    val previewRowHeight = when (state.settings.rowSpacing) {
+        RowSpacing.Compact -> 48.dp
+        RowSpacing.Default -> 58.dp
+        RowSpacing.Comfortable -> 68.dp
+    }
+    val favoriteIds = state.favorites.mapTo(HashSet(), LauncherApp::id)
+
+    Column {
+        SettingsSectionTitle(stringResource(R.string.home_preview))
+        androidx.compose.material3.Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+        ) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                ClockDisplay(
+                    timeText = DateFormat.getTimeFormat(context).format(previewTime),
+                    dateText = DateFormat.getMediumDateFormat(context).format(previewTime),
+                    showClock = state.settings.showClock,
+                    showDate = state.settings.showDate,
+                    size = state.settings.clockSize,
+                    alignment = state.settings.clockAlignment,
+                    design = state.settings.clockDesign,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                    thumbnail = true,
+                )
+                if (previewApps.isEmpty()) {
+                    Text(
+                        stringResource(R.string.no_apps),
+                        modifier = Modifier.heightIn(min = previewRowHeight).wrapContentHeight(Alignment.CenterVertically),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    previewApps.forEach { app ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().heightIn(min = previewRowHeight),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            AppIcon(app, viewModel, state.settings, state.iconRevision, previewIconSize)
+                            val showLabel = when (state.settings.appLabelMode) {
+                                AppLabelMode.Always -> true
+                                AppLabelMode.FavoritesOnly -> app.id in favoriteIds
+                                AppLabelMode.Never -> false
+                            }
+                            if (showLabel) {
+                                Text(
+                                    appDisplayName(app, state),
+                                    modifier = Modifier.weight(1f).padding(start = 12.dp),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun ClockStudioScreen(viewModel: LauncherViewModel, state: LauncherUiState) {
+    val context = LocalContext.current
+    var previewTime by remember { mutableStateOf(Date()) }
+    LaunchedEffect(context) {
+        while (true) {
+            previewTime = Date()
+            delay(1_000L)
+        }
+    }
+    val clock = state.settings
+    val timeText = DateFormat.getTimeFormat(context).format(previewTime)
+    val dateText = DateFormat.getMediumDateFormat(context).format(previewTime)
+
+    SettingsPage(stringResource(R.string.clock_studio), viewModel::goBack) {
+        Text(
+            stringResource(R.string.clock_studio_description),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        SettingsSectionTitle(stringResource(R.string.clock_studio_preview))
+        androidx.compose.material3.Surface(
+            modifier = Modifier.fillMaxWidth().heightIn(min = 156.dp),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+        ) {
+            ClockDisplay(
+                timeText = timeText,
+                dateText = dateText,
+                showClock = clock.showClock,
+                showDate = clock.showDate,
+                size = clock.clockSize,
+                alignment = clock.clockAlignment,
+                design = clock.clockDesign,
+                modifier = Modifier.fillMaxWidth().padding(22.dp),
+            )
+        }
+        SettingsSectionTitle(stringResource(R.string.clock_design))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ClockDesign.entries.forEach { design ->
+                ClockDesignOption(
+                    design = design,
+                    selected = clock.clockDesign == design,
+                    onSelect = { viewModel.setClockDesign(design) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        ChoiceRow(
+            title = stringResource(R.string.clock_size),
+            selected = clock.clockSize,
+            choices = sizeChoices(),
+            onSelect = viewModel::setClockSize,
+        )
+        ChoiceRow(
+            title = stringResource(R.string.clock_alignment),
+            selected = clock.clockAlignment,
+            choices = listOf(
+                ClockAlignment.Start to stringResource(R.string.alignment_start),
+                ClockAlignment.Center to stringResource(R.string.alignment_center),
+            ),
+            onSelect = viewModel::setClockAlignment,
+        )
+        SettingSwitchRow(stringResource(R.string.show_clock), clock.showClock, viewModel::setShowClock)
+        SettingSwitchRow(stringResource(R.string.show_date), clock.showDate, viewModel::setShowDate)
+    }
+}
+
+@Composable
+private fun ClockDesignOption(
+    design: ClockDesign,
+    selected: Boolean,
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val label = when (design) {
+        ClockDesign.Stacked -> stringResource(R.string.clock_design_stacked)
+        ClockDesign.DateFirst -> stringResource(R.string.clock_design_date_first)
+        ClockDesign.Inline -> stringResource(R.string.clock_design_inline)
+    }
+    val previewDate = stringResource(R.string.clock_preview_date)
+    val shape = RoundedCornerShape(18.dp)
+    androidx.compose.material3.Surface(
+        modifier = modifier.heightIn(min = 88.dp).clip(shape).clickable(onClick = onSelect),
+        shape = shape,
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            ClockDisplay(
+                timeText = "9:41",
+                dateText = previewDate,
+                showClock = true,
+                showDate = true,
+                size = SizePreset.Small,
+                alignment = ClockAlignment.Center,
+                design = design,
+                modifier = Modifier.fillMaxWidth(),
+                thumbnail = true,
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+        }
     }
 }
 
@@ -346,15 +532,27 @@ internal fun AppSettingsScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun WidgetSettingsScreen(viewModel: LauncherViewModel, state: LauncherUiState) {
     var expandedWidgetPackage by remember { mutableStateOf<String?>(null) }
+    val orderedWidgets = remember { mutableStateListOf<WidgetInstance>() }
+    LaunchedEffect(state.widgetInstances) {
+        orderedWidgets.clear()
+        orderedWidgets.addAll(state.widgetInstances.sortedBy(WidgetInstance::position))
+    }
+    val widgetListState = rememberLazyListState()
+    val haptics = LocalHapticFeedback.current
+    var draggingWidgetId by remember { mutableStateOf<Int?>(null) }
+    var widgetDragOffset by remember { mutableFloatStateOf(0f) }
+    val widgetDragHint = stringResource(R.string.widget_drag_hint)
     val providersByApp = remember(state.widgetProviders) {
         state.widgetProviders.groupBy { it.provider.packageName }.values.toList()
     }
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = LauncherDimens.ScreenHorizontalPadding)) {
         ScreenTopBar(stringResource(R.string.widgets), viewModel::goBack)
         LazyColumn(
+            state = widgetListState,
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(bottom = LauncherDimens.SectionSpacing),
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -363,9 +561,71 @@ internal fun WidgetSettingsScreen(viewModel: LauncherViewModel, state: LauncherU
                 Text(stringResource(R.string.widgets_help), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (state.widgetInstances.isNotEmpty()) {
-                item { SettingsSectionTitle(stringResource(R.string.placed_widgets)) }
-                items(state.widgetInstances.sortedBy(WidgetInstance::position), key = WidgetInstance::appWidgetId) { widget ->
-                    WidgetInstanceRow(widget, viewModel)
+                item {
+                    Column {
+                        SettingsSectionTitle(stringResource(R.string.placed_widgets))
+                        Text(
+                            stringResource(R.string.widget_drag_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                items(orderedWidgets, key = WidgetInstance::appWidgetId) { widget ->
+                    val isDragging = draggingWidgetId == widget.appWidgetId
+                    Column(
+                        modifier = Modifier
+                            .animateItem()
+                            .graphicsLayer {
+                                translationY = if (isDragging) widgetDragOffset else 0f
+                                scaleX = if (isDragging) 1.015f else 1f
+                                scaleY = if (isDragging) 1.015f else 1f
+                                alpha = if (isDragging) 0.9f else 1f
+                            }
+                            .pointerInput(widget.appWidgetId) {
+                                detectDragGesturesAfterLongPress(
+                                    onDragStart = {
+                                        draggingWidgetId = widget.appWidgetId
+                                        widgetDragOffset = 0f
+                                        NorynHaptics.dragStart(haptics)
+                                    },
+                                    onDragEnd = {
+                                        viewModel.saveWidgetOrder(orderedWidgets.map(WidgetInstance::appWidgetId))
+                                        draggingWidgetId = null
+                                        widgetDragOffset = 0f
+                                        NorynHaptics.reorder(haptics)
+                                    },
+                                    onDragCancel = {
+                                        viewModel.saveWidgetOrder(orderedWidgets.map(WidgetInstance::appWidgetId))
+                                        draggingWidgetId = null
+                                        widgetDragOffset = 0f
+                                    },
+                                    onDrag = { change, amount ->
+                                        change.consume()
+                                        widgetDragOffset += amount.y
+                                        val source = widgetListState.layoutInfo.visibleItemsInfo
+                                            .firstOrNull { it.key == widget.appWidgetId }
+                                            ?: return@detectDragGesturesAfterLongPress
+                                        val draggedCenter = source.offset + widgetDragOffset + source.size / 2f
+                                        val target = widgetListState.layoutInfo.visibleItemsInfo.firstOrNull { item ->
+                                            item.key != widget.appWidgetId && draggedCenter >= item.offset && draggedCenter < item.offset + item.size
+                                        } ?: return@detectDragGesturesAfterLongPress
+                                        val targetId = target.key as? Int ?: return@detectDragGesturesAfterLongPress
+                                        val from = orderedWidgets.indexOfFirst { it.appWidgetId == widget.appWidgetId }
+                                        val to = orderedWidgets.indexOfFirst { it.appWidgetId == targetId }
+                                        if (from in orderedWidgets.indices && to in orderedWidgets.indices && from != to) {
+                                            val moved = orderedWidgets.removeAt(from)
+                                            orderedWidgets.add(to, moved)
+                                            widgetDragOffset -= (target.offset - source.offset).toFloat()
+                                            NorynHaptics.reorder(haptics)
+                                        }
+                                    },
+                                )
+                            }
+                            .semantics { contentDescription = widgetDragHint },
+                    ) {
+                        WidgetInstanceRow(widget, viewModel)
+                    }
                 }
             }
             item { SettingsSectionTitle(stringResource(R.string.add_widget)) }
@@ -468,10 +728,9 @@ private fun WidgetAppGroupCard(
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                 }
-                Text(
-                    if (expanded) "⌃" else "⌄",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                TablerIcon(
+                    name = if (expanded) TablerIconName.ChevronUp else TablerIconName.ChevronDown,
+                    modifier = Modifier.size(20.dp),
                 )
             }
         }
@@ -552,7 +811,7 @@ private fun widgetPresetLabel(size: WidgetSizePreset): String = when (size) {
 @Composable
 private fun WidgetProviderCard(provider: WidgetProvider, onAdd: () -> Unit) {
     androidx.compose.material3.Surface(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onAdd).padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         shape = RoundedCornerShape(22.dp),
         color = MaterialTheme.colorScheme.surface,
     ) {
@@ -605,16 +864,12 @@ private fun WidgetProviderCard(provider: WidgetProvider, onAdd: () -> Unit) {
                     Text(provider.widgetLabel, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(widgetSizeLabel(provider), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                androidx.compose.material3.Surface(
+                FilledTonalButton(
+                    onClick = onAdd,
                     shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                 ) {
-                    Text(
-                        stringResource(R.string.add),
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        style = MaterialTheme.typography.labelLarge,
-                    )
+                    Text(stringResource(R.string.add))
                 }
             }
         }
@@ -725,7 +980,7 @@ private fun HiddenAppRow(app: LauncherApp, state: LauncherUiState, viewModel: La
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 internal fun FavoriteManagementScreen(viewModel: LauncherViewModel, state: LauncherUiState) {
     val orderedFavorites = remember(state.favorites) { mutableStateListOf<LauncherApp>().apply { addAll(state.favorites) } }
@@ -733,10 +988,18 @@ internal fun FavoriteManagementScreen(viewModel: LauncherViewModel, state: Launc
     val haptics = LocalHapticFeedback.current
     var draggingId by remember { mutableStateOf<String?>(null) }
     var dragOffset by remember { mutableFloatStateOf(0f) }
+    var addAppsOpen by remember { mutableStateOf(false) }
+    var addAppsQuery by remember { mutableStateOf("") }
     val dragHint = stringResource(R.string.favorite_drag_hint)
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = LauncherDimens.ScreenHorizontalPadding)) {
         ScreenTopBar(stringResource(R.string.manage_favorites), viewModel::goBack)
+        TextButton(
+            onClick = { addAppsOpen = true },
+            modifier = Modifier.fillMaxWidth().heightIn(min = LauncherDimens.TouchTarget),
+        ) {
+            Text(stringResource(R.string.add_favorite_apps))
+        }
         if (orderedFavorites.isEmpty()) {
             EmptyMessage(stringResource(R.string.no_favorites))
         } else {
@@ -819,6 +1082,69 @@ internal fun FavoriteManagementScreen(viewModel: LauncherViewModel, state: Launc
                         }
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f))
+                }
+            }
+        }
+    }
+
+    if (addAppsOpen) {
+        ModalBottomSheet(
+            onDismissRequest = { addAppsOpen = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        ) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 16.dp)) {
+                Text(
+                    stringResource(R.string.add_favorite_apps),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                TextField(
+                    value = addAppsQuery,
+                    onValueChange = { addAppsQuery = it },
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp),
+                    placeholder = { Text(stringResource(R.string.search_apps_hint)) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(LauncherDimens.PanelCornerRadius),
+                )
+                val candidates = state.visibleApps
+                    .filterNot { candidate -> state.favorites.any { it.id == candidate.id } }
+                    .filter { candidate ->
+                        addAppsQuery.isBlank() || appDisplayName(candidate, state).contains(addAppsQuery.trim(), ignoreCase = true)
+                    }
+                if (candidates.isEmpty()) {
+                    Text(
+                        stringResource(R.string.no_apps_to_add),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 520.dp)) {
+                        items(candidates, key = LauncherApp::id) { app ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 64.dp)
+                                    .clickable { viewModel.toggleFavorite(app) }
+                                    .padding(horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                AppIcon(app, viewModel, state.settings, state.iconRevision, 40.dp)
+                                Text(
+                                    appDisplayName(app, state),
+                                    modifier = Modifier.weight(1f).padding(start = 12.dp, end = 8.dp),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                TablerIcon(TablerIconName.Star, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                        }
+                    }
                 }
             }
         }
@@ -1019,11 +1345,11 @@ private fun <T> ChoiceRow(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        Text(
-            if (layoutDirection == LayoutDirection.Rtl) "‹" else "›",
-            modifier = Modifier.padding(start = 10.dp),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        TablerIcon(
+            name = TablerIconName.ChevronRight,
+            modifier = Modifier.padding(start = 10.dp).size(18.dp).graphicsLayer {
+                scaleX = if (layoutDirection == LayoutDirection.Rtl) -1f else 1f
+            },
         )
     }
     if (sheetOpen) {
@@ -1107,11 +1433,11 @@ private fun SettingsLinkRow(title: String, subtitle: String? = null, onClick: ()
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Text(
-            if (layoutDirection == LayoutDirection.Rtl) "‹" else "›",
-            modifier = Modifier.padding(start = LauncherDimens.CompactSpacing),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        TablerIcon(
+            name = TablerIconName.ChevronRight,
+            modifier = Modifier.padding(start = LauncherDimens.CompactSpacing).size(18.dp).graphicsLayer {
+                scaleX = if (layoutDirection == LayoutDirection.Rtl) -1f else 1f
+            },
         )
     }
 }
@@ -1130,7 +1456,7 @@ private fun IconPackChoiceRow(title: String, subtitle: String?, selected: Boolea
             Text(title, style = MaterialTheme.typography.bodyLarge)
             subtitle?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
-        if (selected) Text("✓", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleMedium)
+        if (selected) TablerIcon(TablerIconName.Check, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
     }
 }
 

@@ -171,7 +171,14 @@ fun LauncherRoot(viewModel: LauncherViewModel, state: LauncherUiState, homeSuppo
                         wallpaperPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     },
                 )
-                LauncherScreen.HomeSettings -> HomeSettingsScreen(viewModel, state)
+                LauncherScreen.HomeSettings -> HomeSettingsScreen(
+                    viewModel,
+                    state,
+                    onChangeWallpaper = {
+                        wallpaperPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    },
+                )
+                LauncherScreen.ClockStudio -> ClockStudioScreen(viewModel, state)
                 LauncherScreen.IconPacks -> IconPacksScreen(viewModel, state)
                 LauncherScreen.GestureSettings -> GestureSettingsScreen(viewModel, state)
                 LauncherScreen.AppSettings -> AppSettingsScreen(

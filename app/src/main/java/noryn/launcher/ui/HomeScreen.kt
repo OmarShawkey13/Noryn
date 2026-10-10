@@ -80,14 +80,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import noryn.launcher.R
 import noryn.launcher.core.model.AppLabelMode
-import noryn.launcher.core.model.ClockAlignment
 import noryn.launcher.core.model.HomeGestureAction
 import noryn.launcher.core.model.LauncherApp
 import noryn.launcher.core.model.LauncherProfile
@@ -121,16 +119,15 @@ internal fun HomeScreen(viewModel: LauncherViewModel, state: LauncherUiState, li
     val hasMultipleProfileGroups = groups.count { it.profile != null } > 1
     fun showsProfileHeader(profile: LauncherProfile) = profile.type != LauncherProfileType.Personal || hasMultipleProfileGroups
 
-    val appSectionIndex = remember(state.widgetInstances, state.favorites, state.suggestedApps) {
-        2 + (if (state.widgetInstances.isNotEmpty()) 1 else 0) + (if (state.favorites.isNotEmpty()) 1 else 0) +
-            (if (state.suggestedApps.isNotEmpty()) 1 else 0)
+    val appSectionIndex = remember(state.widgetInstances, state.suggestedApps) {
+        3 + (if (state.widgetInstances.isNotEmpty()) 1 else 0) + (if (state.suggestedApps.isNotEmpty()) 1 else 0)
     }
     val indexLetters = remember(groups) { groups.flatMap { it.sections.map(AppSection::label) }.distinct() }
     val sectionIndices = remember(groups, state.widgetInstances, state.favorites, state.suggestedApps) {
         buildMap {
             var index = 1
             if (state.widgetInstances.isNotEmpty()) index++
-            if (state.favorites.isNotEmpty()) index++
+            index++ // Favorites is always present so it can guide first-time setup.
             if (state.suggestedApps.isNotEmpty()) index++
             index++
             groups.forEach { group ->
@@ -189,10 +186,8 @@ internal fun HomeScreen(viewModel: LauncherViewModel, state: LauncherUiState, li
             if (state.widgetInstances.isNotEmpty()) {
                 item(key = "home_widgets") { HomeWidgetsSection(state, viewModel) }
             }
-            if (state.favorites.isNotEmpty()) {
-                item(key = "favorites") {
-                    FavoritesSection(state, viewModel)
-                }
+            item(key = "favorites") {
+                FavoritesSection(state, viewModel)
             }
             if (state.suggestedApps.isNotEmpty()) {
                 item(key = "suggested_apps") {
@@ -203,7 +198,7 @@ internal fun HomeScreen(viewModel: LauncherViewModel, state: LauncherUiState, li
                 SectionTitle(
                     text = stringResource(R.string.all_apps),
                     modifier = Modifier.padding(
-                        top = if (state.favorites.isEmpty() && state.suggestedApps.isEmpty() && state.widgetInstances.isEmpty()) 12.dp else LauncherDimens.SectionSpacing,
+                        top = if (state.suggestedApps.isEmpty() && state.widgetInstances.isEmpty()) 12.dp else LauncherDimens.SectionSpacing,
                     ),
                 )
             }
@@ -376,31 +371,15 @@ private fun HomeHeader(
             GlyphButton(NorynGlyph.Settings, settingsDescription, onOpenSettings)
         }
         Spacer(Modifier.height(LauncherDimens.SectionSpacing))
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = if (state.settings.clockAlignment == ClockAlignment.Center) Alignment.CenterHorizontally else Alignment.Start,
-        ) {
-            if (state.settings.showClock) {
-                Text(
-                    text = timeText,
-                    style = MaterialTheme.typography.displayLarge.copy(
-                        fontSize = clockFontSize(state.settings.clockSize),
-                        lineHeight = clockFontSize(state.settings.clockSize) * 1.1f,
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    textAlign = if (state.settings.clockAlignment == ClockAlignment.Center) TextAlign.Center else TextAlign.Start,
-                )
-            }
-            if (state.settings.showDate) {
-                Text(
-                    text = dateText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = if (state.settings.clockAlignment == ClockAlignment.Center) TextAlign.Center else TextAlign.Start,
-                )
-            }
-        }
+        ClockDisplay(
+            timeText = timeText,
+            dateText = dateText,
+            showClock = state.settings.showClock,
+            showDate = state.settings.showDate,
+            size = state.settings.clockSize,
+            alignment = state.settings.clockAlignment,
+            design = state.settings.clockDesign,
+        )
         if (mediaPlayback != null) {
             Spacer(Modifier.height(LauncherDimens.CompactSpacing))
             MediaPlayerCard(
@@ -424,30 +403,28 @@ private fun MediaPlayerCard(
 ) {
     val pauseLabel = stringResource(R.string.media_pause)
     val playLabel = stringResource(R.string.media_play)
-    val nowPlayingLabel = stringResource(R.string.media_now_playing)
     val playbackLabel = if (playback.isPlaying) pauseLabel else playLabel
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 2.dp,
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .clickable(onClick = onOpen),
+                modifier = Modifier.weight(1f)
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable(onClick = onOpen)
+                    .padding(end = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
                     modifier = Modifier
-                        .size(64.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -468,77 +445,44 @@ private fun MediaPlayerCard(
                     }
                 }
                 Column(
-                    modifier = Modifier.weight(1f).padding(start = 14.dp, end = 8.dp),
+                    modifier = Modifier.weight(1f).padding(start = 10.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Box(
-                            Modifier
-                                .size(6.dp)
-                                .background(MaterialTheme.colorScheme.primary, CircleShape),
-                        )
-                        Text(
-                            text = nowPlayingLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            maxLines = 1,
-                        )
-                        Text(
-                            text = playback.appName,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        )
-                    }
                     Text(
                         text = playback.title,
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 17.sp,
-                        ),
+                        style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     )
                     Text(
                         text = playback.artist.ifBlank { playback.appName },
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     )
                 }
             }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    MediaControlButton(
-                        glyph = NorynGlyph.MediaPrevious,
-                        label = stringResource(R.string.media_previous),
-                        enabled = playback.canSkipPrevious,
-                        onClick = onPrevious,
-                    )
-                    MediaControlButton(
-                        glyph = if (playback.isPlaying) NorynGlyph.MediaPause else NorynGlyph.MediaPlay,
-                        label = playbackLabel,
-                        enabled = playback.canTogglePlayback,
-                        emphasized = true,
-                        onClick = onPlayPause,
-                    )
-                    MediaControlButton(
-                        glyph = NorynGlyph.MediaNext,
-                        label = stringResource(R.string.media_next),
-                        enabled = playback.canSkipNext,
-                        onClick = onNext,
-                    )
-                }
-            }
+            MediaControlButton(
+                glyph = NorynGlyph.MediaPrevious,
+                label = stringResource(R.string.media_previous),
+                enabled = playback.canSkipPrevious,
+                onClick = onPrevious,
+            )
+            MediaControlButton(
+                glyph = if (playback.isPlaying) NorynGlyph.MediaPause else NorynGlyph.MediaPlay,
+                label = playbackLabel,
+                enabled = playback.canTogglePlayback,
+                emphasized = true,
+                onClick = onPlayPause,
+            )
+            MediaControlButton(
+                glyph = NorynGlyph.MediaNext,
+                label = stringResource(R.string.media_next),
+                enabled = playback.canSkipNext,
+                onClick = onNext,
+            )
         }
     }
 }
@@ -561,8 +505,8 @@ private fun MediaControlButton(
         shape = CircleShape,
         color = if (emphasized) MaterialTheme.colorScheme.primaryContainer else androidx.compose.ui.graphics.Color.Transparent,
     ) {
-        IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(if (emphasized) 48.dp else 44.dp)) {
-            Glyph(glyph, Modifier.size(if (emphasized) 21.dp else 18.dp), label, colorOverride = contentColor)
+        IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(if (emphasized) 44.dp else 40.dp)) {
+            Glyph(glyph, Modifier.size(if (emphasized) 20.dp else 17.dp), label, colorOverride = contentColor)
         }
     }
 }
@@ -733,17 +677,31 @@ private fun WidgetHostCard(widget: WidgetInstance, viewModel: LauncherViewModel,
 @Composable
 private fun FavoritesSection(state: LauncherUiState, viewModel: LauncherViewModel) {
     Column(modifier = Modifier.padding(top = LauncherDimens.SectionSpacing)) {
-        SectionTitle(stringResource(R.string.favorites))
-        Spacer(Modifier.height(LauncherDimens.CompactSpacing))
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(LauncherDimens.CompactSpacing)) {
-            items(state.favorites, key = LauncherApp::id) { app ->
-                FavoriteTile(
-                    app = app,
-                    state = state,
-                    viewModel = viewModel,
-                    iconSize = favoriteIconSize(state.settings.appIconSize),
-                    showLabel = state.settings.appLabelMode != AppLabelMode.Never,
-                )
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            SectionTitle(stringResource(R.string.favorites), Modifier.weight(1f))
+            TextButton(onClick = viewModel::openFavoriteManagement) {
+                Text(stringResource(if (state.favorites.isEmpty()) R.string.add_favorite_apps else R.string.manage_favorites))
+            }
+        }
+        if (state.favorites.isEmpty()) {
+            Text(
+                text = stringResource(R.string.no_favorites),
+                modifier = Modifier.padding(bottom = LauncherDimens.CompactSpacing),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            Spacer(Modifier.height(LauncherDimens.CompactSpacing))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(LauncherDimens.CompactSpacing)) {
+                items(state.favorites, key = LauncherApp::id) { app ->
+                    FavoriteTile(
+                        app = app,
+                        state = state,
+                        viewModel = viewModel,
+                        iconSize = favoriteIconSize(state.settings.appIconSize),
+                        showLabel = state.settings.appLabelMode != AppLabelMode.Never,
+                    )
+                }
             }
         }
     }
@@ -901,12 +859,6 @@ private fun appRowHeight(spacing: RowSpacing) = when (spacing) {
     RowSpacing.Compact -> 54.dp
     RowSpacing.Default -> LauncherDimens.AppRowHeight
     RowSpacing.Comfortable -> 74.dp
-}
-
-private fun clockFontSize(size: SizePreset) = when (size) {
-    SizePreset.Small -> 42.sp
-    SizePreset.Default -> 52.sp
-    SizePreset.Large -> 60.sp
 }
 
 private const val MILLIS_PER_MINUTE = 60_000L

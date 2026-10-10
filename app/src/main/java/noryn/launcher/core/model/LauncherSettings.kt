@@ -29,6 +29,12 @@ enum class ClockAlignment {
     Center,
 }
 
+enum class ClockDesign {
+    Stacked,
+    DateFirst,
+    Inline,
+}
+
 enum class HomeGestureAction {
     OpenSearch,
     OpenAppList,
@@ -58,6 +64,7 @@ data class LauncherSettings(
     val rowSpacing: RowSpacing = RowSpacing.Default,
     val clockSize: SizePreset = SizePreset.Default,
     val clockAlignment: ClockAlignment = ClockAlignment.Start,
+    val clockDesign: ClockDesign = ClockDesign.Stacked,
     val showAlphabetIndex: Boolean = true,
     val showClock: Boolean = true,
     val showDate: Boolean = true,

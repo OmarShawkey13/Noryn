@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import noryn.launcher.core.model.AppLabelMode
 import noryn.launcher.core.model.ClockAlignment
+import noryn.launcher.core.model.ClockDesign
 import noryn.launcher.core.model.FontChoice
 import noryn.launcher.core.model.HomeGestureAction
 import noryn.launcher.core.model.LauncherProfileLayout
@@ -45,6 +46,7 @@ class LauncherPreferences(context: Context) {
                 rowSpacing = preferences[Keys.rowSpacing].enumValueOrNull() ?: RowSpacing.Default,
                 clockSize = preferences[Keys.clockSize].enumValueOrNull() ?: SizePreset.Default,
                 clockAlignment = preferences[Keys.clockAlignment].enumValueOrNull() ?: ClockAlignment.Start,
+                clockDesign = preferences[Keys.clockDesign].enumValueOrNull() ?: ClockDesign.Stacked,
                 showAlphabetIndex = preferences[Keys.showAlphabetIndex] ?: true,
                 showClock = preferences[Keys.showClock] ?: true,
                 showDate = preferences[Keys.showDate] ?: true,
@@ -86,6 +88,7 @@ class LauncherPreferences(context: Context) {
     suspend fun setRowSpacing(spacing: RowSpacing) = updateString(Keys.rowSpacing, spacing.name)
     suspend fun setClockSize(size: SizePreset) = updateString(Keys.clockSize, size.name)
     suspend fun setClockAlignment(alignment: ClockAlignment) = updateString(Keys.clockAlignment, alignment.name)
+    suspend fun setClockDesign(design: ClockDesign) = updateString(Keys.clockDesign, design.name)
     suspend fun setShowAlphabetIndex(show: Boolean) = updateBoolean(Keys.showAlphabetIndex, show)
     suspend fun setShowClock(show: Boolean) = updateBoolean(Keys.showClock, show)
     suspend fun setShowDate(show: Boolean) = updateBoolean(Keys.showDate, show)
@@ -234,6 +237,7 @@ class LauncherPreferences(context: Context) {
         val rowSpacing = stringPreferencesKey("row_spacing")
         val clockSize = stringPreferencesKey("clock_size")
         val clockAlignment = stringPreferencesKey("clock_alignment")
+        val clockDesign = stringPreferencesKey("clock_design")
         val showAlphabetIndex = booleanPreferencesKey("show_alphabet_index")
         val showClock = booleanPreferencesKey("show_clock")
         val showDate = booleanPreferencesKey("show_date")

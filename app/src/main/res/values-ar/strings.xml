@@ -2,6 +2,14 @@
     <string name="app_name">Noryn Launcher</string>
     <string name="product_name">Noryn</string>
     <string name="welcome_tagline">مساحة أهدأ لبداية يومك.</string>
+    <string name="welcome_setup_intro">خطوات بسيطة عشان تخلي Noryn على ذوقك.</string>
+    <string name="welcome_step_home">اختار Noryn للشاشة الرئيسية</string>
+    <string name="welcome_step_home_summary">خليه المشغّل الافتراضي عشان تبدأ.</string>
+    <string name="welcome_step_favorites">ثبّت تطبيقاتك المفضلة</string>
+    <string name="welcome_step_favorites_summary">اضغط مطولًا على تطبيق لإضافته في الأعلى.</string>
+    <string name="welcome_step_widgets">أضف الأدوات وظبط شكل الشاشة</string>
+    <string name="welcome_step_widgets_summary">اختار الخلفية وعدّل المسافات وأضف الأدوات.</string>
+    <string name="welcome_set_home_note">تقدر تغيّر الاختيارات دي في أي وقت من الإعدادات.</string>
     <string name="set_as_home">اجعل Noryn الشاشة الرئيسية</string>
     <string name="all_apps">التطبيقات</string>
     <string name="favorites">المفضلة</string>
@@ -18,6 +26,8 @@
     <string name="restore_app">استعادة التطبيق</string>
     <string name="no_apps">لم يتم العثور على تطبيقات</string>
     <string name="no_search_results">لا توجد نتائج</string>
+    <string name="search_start_hint">اكتب اسم تطبيق للبحث، أو افتح تطبيقًا مفضلًا بالأسفل.</string>
+    <string name="search_quick_access">المفضلة</string>
     <string name="no_favorites">ثبّت تطبيقاتك المفضلة للوصول إليها بسرعة.</string>
     <string name="hidden_apps">التطبيقات المخفية</string>
     <string name="no_hidden_apps">لا توجد تطبيقات مخفية</string>
@@ -28,6 +38,9 @@
     <string name="show_clock">إظهار الساعة</string>
     <string name="show_date">إظهار التاريخ</string>
     <string name="manage_favorites">إدارة المفضلة</string>
+    <string name="add_favorite_apps">إضافة تطبيقات</string>
+    <string name="no_apps_to_add">لا توجد تطبيقات لإضافتها</string>
+    <string name="home_preview">معاينة شكل الشاشة الرئيسية</string>
     <string name="about">حول</string>
     <string name="version">الإصدار %1$s</string>
     <string name="move_up">نقل إلى أعلى</string>
@@ -70,6 +83,15 @@
     <string name="comfortable">مريح</string>
     <string name="clock_size">حجم الساعة</string>
     <string name="clock_alignment">محاذاة الساعة</string>
+    <string name="clock_studio">استوديو الساعة</string>
+    <string name="clock_studio_summary">اختر نمط الساعة وعدّل مظهرها</string>
+    <string name="clock_studio_description">اختر تصميمًا ثم عدّل الحجم والمحاذاة.</string>
+    <string name="clock_studio_preview">معاينة</string>
+    <string name="clock_design">تصميم الساعة</string>
+    <string name="clock_design_stacked">الوقت أولًا</string>
+    <string name="clock_design_date_first">التاريخ أولًا</string>
+    <string name="clock_design_inline">جنب بعض</string>
+    <string name="clock_preview_date">٩ أكتوبر</string>
     <string name="alignment_start">البداية</string>
     <string name="alignment_center">الوسط</string>
     <string name="maximum_favorites">الحد الأقصى للمفضلة</string>
@@ -116,6 +138,7 @@
     <string name="widgets">الأدوات</string>
     <string name="widgets_description">إضافة أدوات الشاشة الرئيسية وترتيبها</string>
     <string name="widgets_help">أضف أدوات التطبيقات المثبتة في ملفك الشخصي. قد تطلب الأدوات إذنًا أو إعدادًا.</string>
+    <string name="widget_drag_hint">اضغط مطولًا على الأداة واسحبها لتغيير ترتيبها.</string>
     <string name="placed_widgets">على الشاشة الرئيسية</string>
     <string name="add_widget">إضافة أداة</string>
     <string name="no_widget_providers">لا توجد أدوات للشاشة الرئيسية.</string>

@@ -40,6 +40,7 @@ import noryn.launcher.core.model.LauncherShortcut
 import noryn.launcher.core.model.ThemeChoice
 import noryn.launcher.core.model.AppLabelMode
 import noryn.launcher.core.model.ClockAlignment
+import noryn.launcher.core.model.ClockDesign
 import noryn.launcher.core.model.FontChoice
 import noryn.launcher.core.model.HomeGestureAction
 import noryn.launcher.core.model.RowSpacing
@@ -73,6 +74,7 @@ enum class LauncherScreen {
     Notifications,
     AppEdit,
     IconSelection,
+    ClockStudio,
 }
 
 sealed interface LauncherEvent {
@@ -359,6 +361,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun openAppearanceSettings() = openSettingsScreen(LauncherScreen.AppearanceSettings)
     fun openHomeSettings() = openSettingsScreen(LauncherScreen.HomeSettings)
+    fun openClockStudio() = openSettingsScreen(LauncherScreen.ClockStudio)
     fun openIconPacks() {
         iconPackReturnScreen = screen.value
         screen.value = LauncherScreen.IconPacks
@@ -435,6 +438,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             LauncherScreen.HomeSettings,
             LauncherScreen.GestureSettings,
             LauncherScreen.AppSettings -> screen.value = LauncherScreen.Settings
+            LauncherScreen.ClockStudio -> screen.value = LauncherScreen.HomeSettings
             LauncherScreen.Widgets -> {
                 clearWidgetProviders()
                 screen.value = LauncherScreen.Settings
@@ -509,6 +513,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val moved = items.removeAt(index)
         items.add(target, moved)
         widgetHostManager.reorder(items.map(WidgetInstance::appWidgetId))
+        refreshWidgets()
+    }
+
+    fun saveWidgetOrder(appWidgetIds: List<Int>) {
+        widgetHostManager.reorder(appWidgetIds)
         refreshWidgets()
     }
 
@@ -682,6 +691,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun setRowSpacing(spacing: RowSpacing) = updateSettings { preferences.setRowSpacing(spacing) }
     fun setClockSize(size: SizePreset) = updateSettings { preferences.setClockSize(size) }
     fun setClockAlignment(alignment: ClockAlignment) = updateSettings { preferences.setClockAlignment(alignment) }
+    fun setClockDesign(design: ClockDesign) = updateSettings { preferences.setClockDesign(design) }
     fun setShowAlphabetIndex(show: Boolean) = updateSettings { preferences.setShowAlphabetIndex(show) }
     fun setShowClock(show: Boolean) = updateSettings { preferences.setShowClock(show) }
     fun setShowDate(show: Boolean) = updateSettings { preferences.setShowDate(show) }

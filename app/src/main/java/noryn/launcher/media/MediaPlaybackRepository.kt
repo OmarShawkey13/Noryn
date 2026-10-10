@@ -103,9 +103,7 @@ object MediaPlaybackRepository {
             sessionActivity?.send()
             sessionActivity != null
         }.getOrDefault(false)
-        if (opened) return true
-
-        return runCatching {
+        return opened || runCatching {
             val intent = listenerService.packageManager.getLaunchIntentForPackage(controller.packageName)
                 ?: return false
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -174,13 +172,13 @@ object MediaPlaybackRepository {
         val title = metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE)
             ?.takeIf(String::isNotBlank)
             ?: metadata.getString(MediaMetadata.METADATA_KEY_TITLE)?.takeIf(String::isNotBlank)
-            ?: description?.title?.toString()?.takeIf(String::isNotBlank)
+            ?: description.title?.toString()?.takeIf(String::isNotBlank)
             ?: return null
         val artist = metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
             ?.takeIf(String::isNotBlank)
             ?: metadata.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST)
                 ?.takeIf(String::isNotBlank)
-            ?: description?.subtitle?.toString()?.takeIf(String::isNotBlank)
+            ?: description.subtitle?.toString()?.takeIf(String::isNotBlank)
             ?: applicationName(controller.packageName)
         val actions = playbackState.actions
         val isPlaying = playbackState.state == PlaybackState.STATE_PLAYING ||

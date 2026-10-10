@@ -2,6 +2,14 @@
     <string name="app_name">Noryn Launcher</string>
     <string name="product_name">Noryn</string>
     <string name="welcome_tagline">A calmer place to start.</string>
+    <string name="welcome_setup_intro">A few simple steps to make it yours.</string>
+    <string name="welcome_step_home">Choose Noryn as Home</string>
+    <string name="welcome_step_home_summary">Set it as your default launcher to get started.</string>
+    <string name="welcome_step_favorites">Pin your favorites</string>
+    <string name="welcome_step_favorites_summary">Long-press an app to add it to the top row.</string>
+    <string name="welcome_step_widgets">Add widgets and personalize</string>
+    <string name="welcome_step_widgets_summary">Choose a wallpaper, adjust spacing and add widgets.</string>
+    <string name="welcome_set_home_note">You can change these choices any time in Settings.</string>
     <string name="set_as_home">Set Noryn as Home</string>
     <string name="all_apps">Apps</string>
     <string name="favorites">Favorites</string>
@@ -18,6 +26,8 @@
     <string name="restore_app">Restore app</string>
     <string name="no_apps">No applications found</string>
     <string name="no_search_results">No matches</string>
+    <string name="search_start_hint">Start typing to find apps, or open a favorite below.</string>
+    <string name="search_quick_access">Favorites</string>
     <string name="no_favorites">Pin a few favorites for quick access.</string>
     <string name="hidden_apps">Hidden applications</string>
     <string name="no_hidden_apps">No hidden applications</string>
@@ -28,6 +38,9 @@
     <string name="show_clock">Show clock</string>
     <string name="show_date">Show date</string>
     <string name="manage_favorites">Manage favorites</string>
+    <string name="add_favorite_apps">Add apps</string>
+    <string name="no_apps_to_add">No apps to add</string>
+    <string name="home_preview">Home layout preview</string>
     <string name="about">About</string>
     <string name="version">Version %1$s</string>
     <string name="move_up">Move up</string>
@@ -70,6 +83,15 @@
     <string name="comfortable">Comfortable</string>
     <string name="clock_size">Clock size</string>
     <string name="clock_alignment">Clock alignment</string>
+    <string name="clock_studio">Clock studio</string>
+    <string name="clock_studio_summary">Choose a style and adjust your home clock</string>
+    <string name="clock_studio_description">Choose a clock layout, then adjust its size and position.</string>
+    <string name="clock_studio_preview">Preview</string>
+    <string name="clock_design">Design</string>
+    <string name="clock_design_stacked">Stacked</string>
+    <string name="clock_design_date_first">Date first</string>
+    <string name="clock_design_inline">Inline</string>
+    <string name="clock_preview_date">Oct 9</string>
     <string name="alignment_start">Start</string>
     <string name="alignment_center">Center</string>
     <string name="maximum_favorites">Maximum favorites</string>
@@ -116,6 +138,7 @@
     <string name="widgets">Widgets</string>
     <string name="widgets_description">Add and arrange home screen widgets</string>
     <string name="widgets_help">Add widgets from apps installed in your personal profile. Providers may ask for permission or setup.</string>
+    <string name="widget_drag_hint">Touch and hold a widget, then drag to reorder.</string>
     <string name="placed_widgets">On your home screen</string>
     <string name="add_widget">Add a widget</string>
     <string name="no_widget_providers">No home screen widgets are available.</string>

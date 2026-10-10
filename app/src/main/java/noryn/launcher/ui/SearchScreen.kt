@@ -136,21 +136,43 @@ internal fun SearchScreen(viewModel: LauncherViewModel, state: LauncherUiState) 
             ),
         )
         Spacer(Modifier.height(LauncherDimens.CompactSpacing))
-        if (state.searchResults.isEmpty() && !state.isLoading) {
-            EmptyMessage(if (state.query.isBlank()) stringResource(R.string.no_apps) else noResults)
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = LauncherDimens.SectionSpacing),
-                verticalArrangement = Arrangement.Top,
-            ) {
-                items(state.searchResults, key = LauncherApp::id) { app ->
-                    LauncherAppRow(
-                        app = app,
-                        state = state,
-                        viewModel = viewModel,
-                        showLabel = true,
-                    )
+        when {
+            queryValue.value.text.isBlank() && state.favorites.isEmpty() -> {
+                EmptyMessage(stringResource(R.string.search_start_hint))
+            }
+            queryValue.value.text.isBlank() -> {
+                Text(
+                    stringResource(R.string.search_quick_access),
+                    modifier = Modifier.height(LauncherDimens.SectionHeadingHeight).padding(top = LauncherDimens.CompactSpacing),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = LauncherDimens.SectionSpacing),
+                ) {
+                    items(state.favorites, key = LauncherApp::id) { app ->
+                        LauncherAppRow(app = app, state = state, viewModel = viewModel, showLabel = true)
+                    }
+                }
+            }
+            state.searchResults.isEmpty() && !state.isLoading -> {
+                EmptyMessage(noResults)
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = LauncherDimens.SectionSpacing),
+                    verticalArrangement = Arrangement.Top,
+                ) {
+                    items(state.searchResults, key = LauncherApp::id) { app ->
+                        LauncherAppRow(
+                            app = app,
+                            state = state,
+                            viewModel = viewModel,
+                            showLabel = true,
+                        )
+                    }
                 }
             }
         }

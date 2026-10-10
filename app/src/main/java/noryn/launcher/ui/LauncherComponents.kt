@@ -1,7 +1,6 @@
 package noryn.launcher.ui
 
 import android.graphics.Bitmap
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -45,15 +44,11 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
@@ -62,7 +57,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -323,29 +317,40 @@ internal fun AppActionSurface(
                         NorynSheetSectionTitle(stringResource(R.string.notifications))
                         NorynSheetActionRow(
                             title = stringResource(R.string.notification_preview_count, appNotifications.size),
-                            leading = { Text("•", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary) },
+                            leading = {
+                                TablerIcon(
+                                    TablerIconName.Bell,
+                                    Modifier.size(22.dp),
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
+                            },
                             onClick = { menuExpanded = false; notificationsOpen = true },
                         )
                     }
                     NorynSheetSectionTitle(stringResource(R.string.actions))
                     NorynSheetActionRow(
                         title = stringResource(if (isFavorite) R.string.remove_favorite else R.string.add_favorite),
-                        leading = { Text(if (isFavorite) "★" else "☆", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        leading = {
+                            TablerIcon(
+                                if (isFavorite) TablerIconName.StarFilled else TablerIconName.Star,
+                                Modifier.size(22.dp),
+                            )
+                        },
                         onClick = { menuExpanded = false; onToggleFavorite() },
                     )
                     NorynSheetActionRow(
                         title = stringResource(R.string.edit_app),
-                        leading = { Text("✎", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        leading = { TablerIcon(TablerIconName.Pencil, Modifier.size(22.dp)) },
                         onClick = { menuExpanded = false; onEdit() },
                     )
                     NorynSheetActionRow(
                         title = stringResource(R.string.app_info),
-                        leading = { Text("ⓘ", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        leading = { TablerIcon(TablerIconName.InfoCircle, Modifier.size(22.dp)) },
                         onClick = { menuExpanded = false; onOpenInfo() },
                     )
                     NorynSheetActionRow(
                         title = stringResource(R.string.hide_app),
-                        leading = { Text("⊘", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        leading = { TablerIcon(TablerIconName.EyeOff, Modifier.size(22.dp)) },
                         onClick = { menuExpanded = false; onHide() },
                     )
                     Spacer(Modifier.height(12.dp))
@@ -620,161 +625,26 @@ internal fun Glyph(
     description: String? = null,
     colorOverride: Color? = null,
 ) {
-    val color = colorOverride ?: MaterialTheme.colorScheme.onSurfaceVariant
-    val background = MaterialTheme.colorScheme.background
-    val direction = LocalLayoutDirection.current
-    Canvas(
-        modifier = modifier.then(
-            if (description == null) Modifier else Modifier.semantics { contentDescription = description },
-        ),
-    ) {
-        val stroke = size.minDimension * 0.075f
-        when (glyph) {
-            NorynGlyph.Search -> {
-                val radius = size.minDimension * 0.28f
-                val center = androidx.compose.ui.geometry.Offset(size.width * 0.42f, size.height * 0.42f)
-                drawCircle(color, radius, center, style = Stroke(stroke))
-                drawLine(
-                    color,
-                    androidx.compose.ui.geometry.Offset(center.x + radius * 0.72f, center.y + radius * 0.72f),
-                    androidx.compose.ui.geometry.Offset(size.width * 0.88f, size.height * 0.88f),
-                    stroke,
-                    cap = StrokeCap.Round,
-                )
-            }
-            NorynGlyph.Clear -> {
-                val inset = size.minDimension * 0.27f
-                drawLine(
-                    color,
-                    androidx.compose.ui.geometry.Offset(inset, inset),
-                    androidx.compose.ui.geometry.Offset(size.width - inset, size.height - inset),
-                    stroke,
-                    cap = StrokeCap.Round,
-                )
-                drawLine(
-                    color,
-                    androidx.compose.ui.geometry.Offset(size.width - inset, inset),
-                    androidx.compose.ui.geometry.Offset(inset, size.height - inset),
-                    stroke,
-                    cap = StrokeCap.Round,
-                )
-            }
-            NorynGlyph.MediaPrevious -> {
-                val triangle = Path().apply {
-                    moveTo(size.width * 0.62f, size.height * 0.22f)
-                    lineTo(size.width * 0.34f, size.height * 0.5f)
-                    lineTo(size.width * 0.62f, size.height * 0.78f)
-                    close()
-                }
-                drawPath(triangle, color)
-                drawLine(
-                    color,
-                    androidx.compose.ui.geometry.Offset(size.width * 0.78f, size.height * 0.22f),
-                    androidx.compose.ui.geometry.Offset(size.width * 0.78f, size.height * 0.78f),
-                    stroke,
-                    cap = StrokeCap.Round,
-                )
-            }
-            NorynGlyph.MediaPlay -> {
-                val triangle = Path().apply {
-                    moveTo(size.width * 0.32f, size.height * 0.2f)
-                    lineTo(size.width * 0.76f, size.height * 0.5f)
-                    lineTo(size.width * 0.32f, size.height * 0.8f)
-                    close()
-                }
-                drawPath(triangle, color)
-            }
-            NorynGlyph.MediaPause -> {
-                drawRoundRect(
-                    color,
-                    topLeft = androidx.compose.ui.geometry.Offset(size.width * 0.27f, size.height * 0.2f),
-                    size = androidx.compose.ui.geometry.Size(size.width * 0.18f, size.height * 0.6f),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(stroke, stroke),
-                )
-                drawRoundRect(
-                    color,
-                    topLeft = androidx.compose.ui.geometry.Offset(size.width * 0.57f, size.height * 0.2f),
-                    size = androidx.compose.ui.geometry.Size(size.width * 0.18f, size.height * 0.6f),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(stroke, stroke),
-                )
-            }
-            NorynGlyph.MediaNext -> {
-                val triangle = Path().apply {
-                    moveTo(size.width * 0.38f, size.height * 0.22f)
-                    lineTo(size.width * 0.66f, size.height * 0.5f)
-                    lineTo(size.width * 0.38f, size.height * 0.78f)
-                    close()
-                }
-                drawPath(triangle, color)
-                drawLine(
-                    color,
-                    androidx.compose.ui.geometry.Offset(size.width * 0.22f, size.height * 0.22f),
-                    androidx.compose.ui.geometry.Offset(size.width * 0.22f, size.height * 0.78f),
-                    stroke,
-                    cap = StrokeCap.Round,
-                )
-            }
-            NorynGlyph.Settings -> {
-                val ys = listOf(0.25f, 0.5f, 0.75f)
-                val knobs = listOf(0.38f, 0.68f, 0.48f)
-                ys.forEachIndexed { index, y ->
-                    drawLine(
-                        color,
-                        androidx.compose.ui.geometry.Offset(size.width * 0.12f, size.height * y),
-                        androidx.compose.ui.geometry.Offset(size.width * 0.88f, size.height * y),
-                        stroke,
-                        cap = StrokeCap.Round,
-                    )
-                    drawCircle(
-                        background,
-                        size.minDimension * 0.11f,
-                        androidx.compose.ui.geometry.Offset(size.width * knobs[index], size.height * y),
-                    )
-                    drawCircle(
-                        color,
-                        size.minDimension * 0.11f,
-                        androidx.compose.ui.geometry.Offset(size.width * knobs[index], size.height * y),
-                        style = Stroke(stroke),
-                    )
-                }
-            }
-            NorynGlyph.Back -> {
-                val mirror = direction == LayoutDirection.Rtl
-                val left = if (mirror) size.width * 0.82f else size.width * 0.18f
-                val right = if (mirror) size.width * 0.18f else size.width * 0.82f
-                drawLine(
-                    color,
-                    androidx.compose.ui.geometry.Offset(right, size.height * 0.5f),
-                    androidx.compose.ui.geometry.Offset(left, size.height * 0.5f),
-                    stroke,
-                    cap = StrokeCap.Round,
-                )
-                val arrow = Path().apply {
-                    moveTo(right - (right - left) * 0.42f, size.height * 0.2f)
-                    lineTo(left, size.height * 0.5f)
-                    lineTo(right - (right - left) * 0.42f, size.height * 0.8f)
-                }
-                drawPath(arrow, color, style = Stroke(stroke, cap = StrokeCap.Round))
-            }
-            NorynGlyph.Up, NorynGlyph.Down -> {
-                val pointsUp = glyph == NorynGlyph.Up
-                val centerY = if (pointsUp) size.height * 0.36f else size.height * 0.64f
-                val tailY = if (pointsUp) size.height * 0.78f else size.height * 0.22f
-                val path = Path().apply {
-                    moveTo(size.width * 0.2f, if (pointsUp) centerY + size.height * 0.15f else centerY - size.height * 0.15f)
-                    lineTo(size.width * 0.5f, centerY)
-                    lineTo(size.width * 0.8f, if (pointsUp) centerY + size.height * 0.15f else centerY - size.height * 0.15f)
-                    moveTo(size.width * 0.5f, centerY)
-                    lineTo(size.width * 0.5f, tailY)
-                }
-                drawPath(path, color, style = Stroke(stroke, cap = StrokeCap.Round))
-            }
-            NorynGlyph.More -> {
-                val radius = size.minDimension * 0.075f
-                listOf(0.25f, 0.5f, 0.75f).forEach { y ->
-                    drawCircle(color, radius, androidx.compose.ui.geometry.Offset(size.width * 0.5f, size.height * y))
-                }
-            }
-        }
+    val icon = when (glyph) {
+        NorynGlyph.Search -> TablerIconName.Search
+        NorynGlyph.Clear -> TablerIconName.Close
+        NorynGlyph.MediaPrevious -> TablerIconName.PlayerTrackPrevious
+        NorynGlyph.MediaPlay -> TablerIconName.PlayerPlay
+        NorynGlyph.MediaPause -> TablerIconName.PlayerPause
+        NorynGlyph.MediaNext -> TablerIconName.PlayerTrackNext
+        NorynGlyph.Settings -> TablerIconName.Adjustments
+        NorynGlyph.Back -> TablerIconName.ArrowLeft
+        NorynGlyph.Up -> TablerIconName.ArrowUp
+        NorynGlyph.Down -> TablerIconName.ArrowDown
+        NorynGlyph.More -> TablerIconName.MoreVertical
     }
+    val direction = androidx.compose.ui.platform.LocalLayoutDirection.current
+    TablerIcon(
+        name = icon,
+        modifier = modifier.graphicsLayer {
+            scaleX = if (glyph == NorynGlyph.Back && direction == androidx.compose.ui.unit.LayoutDirection.Rtl) -1f else 1f
+        },
+        contentDescription = description,
+        tint = colorOverride ?: MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
